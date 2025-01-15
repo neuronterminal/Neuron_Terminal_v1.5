@@ -7,7 +7,7 @@ const BEGINNER_LESSONS: Lesson[] = [
     id: 'intro-to-programming',
     title: 'Introduction to Programming',
     description: 'Learn the basics of programming with JavaScript',
-    difficulty: 'beginner',
+    difficulty: 'beginner' as const,
     language: 'javascript',
     content: 'Start your programming journey with the fundamentals',
     exercises: [
