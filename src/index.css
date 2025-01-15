@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --matrix-green: #00ff41;
+  --matrix-dark: #0d0208;
+}
+
+body {
+  margin: 0;
+  background-color: var(--matrix-dark);
+  color: var(--matrix-green);
+  font-family: 'Courier New', monospace;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--matrix-green) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--matrix-green);
+  border-radius: 3px;
+}
+
+.matrix-button {
+  @apply bg-transparent border border-[#00ff41] text-[#00ff41] transition-all duration-300;
+}
+
+.matrix-button:hover:not(:disabled) {
+  @apply bg-[#00ff41]/10;
+}
+
+.matrix-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
