@@ -1,3 +1,5 @@
+import { PatternMatch } from '../types';
+
 const CODE_PATTERNS = {
   MEMORY_LEAK: /setInterval|setTimeout(?!\s*\([^)]*clearTimeout)/,
   NESTED_CALLBACKS: /callback.*callback|promise.*then.*then/,
