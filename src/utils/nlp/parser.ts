@@ -1,29 +1,34 @@
-import nlp from 'compromise';
 import { ParsedInput } from '../types/parser';
 
 export function parseInput(text: string): ParsedInput {
-  const doc = nlp(text);
-  const verbs = doc.verbs().json();
-  const statements = doc.sentences().json();
+  const words = text.toLowerCase().split(' ');
   
   return {
-    topics: extractTopics(doc),
-    verbs: verbs,
-    nouns: doc.nouns().json(),
+    topics: extractTopics(words),
+    verbs: extractVerbs(words),
+    nouns: extractNouns(words),
     sentiment: 0,
-    questions: doc.questions().json(),
-    statements: statements,
-    tense: verbs[0]?.tense || 'present',
-    isQuestion: doc.questions().length > 0,
-    isNegative: doc.has('#Negative'),
-    entities: extractEntities(doc)
+    questions: text.endsWith('?') ? [text] : [],
+    statements: text.endsWith('?') ? [] : [text],
+    tense: 'present',
+    isQuestion: text.endsWith('?'),
+    isNegative: words.some(w => ['no', 'not', "don't", 'never'].includes(w)),
+    entities: extractEntities(text)
   };
 }
 
-function extractTopics(doc: any) {
-  return doc.topics().json();
+function extractTopics(words: string[]): string[] {
+  return words.filter(w => w.length > 3);
 }
 
-function extractEntities(doc: any) {
-  return [...doc.people().json(), ...doc.places().json()];
+function extractVerbs(words: string[]): any[] {
+  return [];
+}
+
+function extractNouns(words: string[]): any[] {
+  return [];
+}
+
+function extractEntities(text: string): any[] {
+  return [];
 }
