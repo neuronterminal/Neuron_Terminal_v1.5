@@ -1,3 +1,5 @@
+import { CodeAnalysis } from '../codeAnalysis/types';
+
 export interface Lesson {
   id: string;
   title: string;
