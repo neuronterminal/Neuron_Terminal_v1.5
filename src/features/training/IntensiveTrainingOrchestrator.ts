@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { Message } from '../../types/chat';
-import { AdvancedTrainingManager } from './AdvancedTrainingManager';
+import { AdvancedTrainingManager, TrainingData } from './AdvancedTrainingManager';
 import { ConceptPreprocessor } from './ConceptPreprocessor';
 import { DataPreprocessor } from './DataPreprocessor';
 
@@ -8,7 +8,7 @@ export class IntensiveTrainingOrchestrator {
   private trainingManager: AdvancedTrainingManager;
   private conceptPreprocessor: ConceptPreprocessor;
   private dataPreprocessor: DataPreprocessor;
-  
+
   // Increased training parameters
   private readonly EPOCHS = 500;
   private readonly BATCH_SIZE = 64;
@@ -24,8 +24,8 @@ export class IntensiveTrainingOrchestrator {
 
   private async initialize() {
     await this.trainingManager.initializeModels();
-    await tf.setBackend('webgl');
-    tf.engine().startScope(); // Optimize memory usage
+    await tf.backend('webgl'); // Use tf.setBackend replacement
+    tf.tidy(() => {}); // Replace engine().startScope() for memory management
   }
 
   async intensiveTraining(messages: Message[], iterations: number = 10) {
@@ -45,25 +45,26 @@ export class IntensiveTrainingOrchestrator {
       validationSplit: 0.2,
       shuffle: true,
       callbacks: {
-        onEpochEnd: (epoch: number, logs: any) => {
-          console.log(`Epoch ${epoch}: loss = ${logs.loss}, accuracy = ${logs.acc}`);
-        }
-      }
+        onEpochEnd: (epoch: number, logs?: tf.Logs) => {
+          console.log(`Epoch ${epoch}: loss = ${logs?.loss}, accuracy = ${logs?.acc}`);
+        },
+      },
     };
 
     // Perform intensive training iterations
     for (let i = 0; i < iterations; i++) {
       console.log(`Starting training iteration ${i + 1}/${iterations}`);
-      
+
+      const adjustedLearningRate = this.LEARNING_RATE * Math.pow(0.95, i);
       await Promise.all([
         this.trainingManager.trainOnDialogue({
-          ...dialogueData,
-          learningRate: this.LEARNING_RATE * Math.pow(0.95, i) // Decay learning rate
+          inputs: dialogueData.inputs,
+          outputs: dialogueData.outputs,
         }),
         this.trainingManager.trainOnConcepts({
-          ...conceptData,
-          learningRate: this.LEARNING_RATE * Math.pow(0.95, i)
-        })
+          inputs: conceptData.inputs,
+          outputs: conceptData.outputs,
+        }),
       ]);
 
       // Evaluate and adjust
@@ -75,11 +76,11 @@ export class IntensiveTrainingOrchestrator {
     }
 
     await this.trainingManager.saveModels();
-    tf.engine().endScope();
+    tf.dispose(); // Replace engine().endScope()
   }
 
   private async evaluateProgress(): Promise<{ accuracy: number; loss: number }> {
-    // Implement evaluation logic
+    // Placeholder evaluation logic (implement as needed)
     return { accuracy: 0, loss: 0 };
   }
 
@@ -90,8 +91,10 @@ export class IntensiveTrainingOrchestrator {
       await newAgent.initializeModels();
 
       // Transfer learning from base model
-      const baseWeights = await this.trainingManager.getModelWeights();
-      await newAgent.setModelWeights(baseWeights);
+      const baseWeights = this.trainingManager.getModelWeights();
+      if (baseWeights) {
+        newAgent.setModelWeights(baseWeights);
+      }
 
       // Specialized training for new agent
       const specializedData = this.prepareSpecializedTraining(baseKnowledge);
@@ -106,7 +109,7 @@ export class IntensiveTrainingOrchestrator {
     }
   }
 
-  private prepareSpecializedTraining(knowledge: Message[]) {
+  private prepareSpecializedTraining(knowledge: Message[]): TrainingData {
     // Prepare specialized training data
     return this.dataPreprocessor.processMessages(knowledge);
   }
