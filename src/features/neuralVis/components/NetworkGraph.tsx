@@ -45,17 +45,16 @@ export function NetworkGraph({
     simulation.on('tick', () => {
       svg
         .selectAll('.node')
-        .attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+        .attr('transform', (d: NeuralNode) => `translate(${d.x ?? 0},${d.y ?? 0})`);
 
       svg
         .selectAll('.link')
-        .attr('x1', (d) => (d.source as NeuralNode).x ?? 0)
-        .attr('y1', (d) => (d.source as NeuralNode).y ?? 0)
-        .attr('x2', (d) => (d.target as NeuralNode).x ?? 0)
-        .attr('y2', (d) => (d.target as NeuralNode).y ?? 0);
+        .attr('x1', (d: NeuralLink) => (d.source as NeuralNode).x ?? 0)
+        .attr('y1', (d: NeuralLink) => (d.source as NeuralNode).y ?? 0)
+        .attr('x2', (d: NeuralLink) => (d.target as NeuralNode).x ?? 0)
+        .attr('y2', (d: NeuralLink) => (d.target as NeuralNode).y ?? 0);
     });
 
-    // Cleanup
     return () => {
       simulation.stop();
     };
