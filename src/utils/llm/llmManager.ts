@@ -8,21 +8,26 @@ const providers: LLMProvider[] = [
     name: 'Local Model',
     description: 'Basic pattern-based responses using ELIZA-style processing',
     maxTokens: 100,
-    isAvailable: true
+    isAvailable: true,
   },
   {
     id: 'transformers',
     name: 'TensorFlow.js',
     description: 'Neural network-based responses using TensorFlow.js',
     maxTokens: 200,
-    isAvailable: true
-  }
+    isAvailable: true,
+  },
 ];
 
 export class LLMManager {
   private config: LLMConfig;
 
-  constructor(config: LLMConfig = { provider: 'local' }) {
+  constructor(config: LLMConfig = { 
+    provider: 'local',
+    apiKey: '', // Default empty string since local doesn't need it
+    model: 'eliza', // Default model for local provider
+    maxTokens: 100, // Match local provider's maxTokens
+  }) {
     this.config = config;
   }
 
@@ -38,7 +43,7 @@ export class LLMManager {
     } catch (error) {
       return {
         content: "I apologize, but I encountered an error. Could you please try again?",
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -48,8 +53,13 @@ export class LLMManager {
   }
 
   setProvider(providerId: string) {
-    if (providers.some(p => p.id === providerId)) {
-      this.config.provider = providerId;
+    const provider = providers.find((p) => p.id === providerId);
+    if (provider) {
+      this.config = {
+        ...this.config,
+        provider: providerId,
+        maxTokens: provider.maxTokens, // Update maxTokens to match provider
+      };
     }
   }
 }
