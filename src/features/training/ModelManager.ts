@@ -1,59 +1,69 @@
 import * as tf from '@tensorflow/tfjs';
-import { ModelArchitecture } from '../ai/models/types';
 
 export class ModelManager {
-  private model: tf.Sequential | null = null; // Use Sequential instead of LayersModel
+  private model: tf.Sequential | null = null;
 
-  async initialize(architecture: ModelArchitecture): Promise<void> {
+  async initializeModel() {
     try {
-      // Try to load existing model first
-      this.model = await this.loadModel();
+      this.model = tf.sequential();
+      
+      if (!this.model) throw new Error('Failed to create sequential model');
+      
+      this.model.add(tf.layers.dense({
+        units: 64,
+        activation: 'relu',
+        inputShape: [10]
+      }));
+      
+      this.model.add(tf.layers.dense({
+        units: 32,
+        activation: 'relu'
+      }));
+      
+      this.model.add(tf.layers.dense({
+        units: 1,
+        activation: 'sigmoid'
+      }));
+
+      this.model.compile({
+        optimizer: 'adam',
+        loss: 'binaryCrossentropy',
+        metrics: ['accuracy']
+      });
     } catch (error) {
-      console.log('No existing model found, creating new one:', error);
-      // Create new model if none exists
-      this.model = await this.createModel(architecture);
-      // Save initial model
-      await this.saveModel();
+      console.error('Error initializing model:', error);
+      throw error;
     }
   }
 
-  private async createModel(architecture: ModelArchitecture): Promise<tf.Sequential> {
-    const model = tf.sequential();
-
-    architecture.layers.forEach((layer, index) => {
-      const config: tf.layers.DenseLayerArgs = {
-        units: layer.units,
-        activation: layer.activation,
-        inputShape: index === 0 ? architecture.inputShape : undefined,
-      };
-
-      model.add(tf.layers.dense(config));
-    });
-
-    model.compile({
-      optimizer: tf.train.adam(0.001),
-      loss: 'categoricalCrossentropy',
-      metrics: ['accuracy'],
-    });
-
-    return model;
-  }
-
-  private async loadModel(): Promise<tf.Sequential> {
-    const loadedModel = await tf.loadLayersModel('localstorage://neural-chat-model');
-    if (!(loadedModel instanceof tf.Sequential)) {
+  async loadModel(path: string) {
+    try {
+      const loadedModel = await tf.loadLayersModel(path);
+      if (loadedModel instanceof tf.Sequential) {
+        this.model = loadedModel;
+        return true;
+      }
       throw new Error('Loaded model is not a Sequential model');
+    } catch (error) {
+      console.error('Error loading model:', error);
+      return false;
     }
-    return loadedModel;
   }
 
-  private async saveModel(): Promise<void> {
-    if (!this.model) throw new Error('No model to save');
-    await this.model.save('localstorage://neural-chat-model');
-  }
-
-  getModel(): tf.Sequential {
+  async saveModel(path: string) {
     if (!this.model) throw new Error('Model not initialized');
-    return this.model;
+    await this.model.save(path);
+  }
+
+  async predict(input: number[][]) {
+    if (!this.model) throw new Error('Model not initialized');
+    const tensorInput = tf.tensor2d(input);
+    const prediction = this.model.predict(tensorInput) as tf.Tensor;
+    const result = await prediction.array();
+    tensorInput.dispose();
+    prediction.dispose();
+    return result;
   }
 }
+
+export default new ModelManager();
