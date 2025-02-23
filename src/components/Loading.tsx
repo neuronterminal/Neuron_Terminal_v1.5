@@ -6,10 +6,10 @@ export function Loading() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return; // Early exit if canvas is null
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return; // Early exit if context is null
 
     // Set canvas size
     canvas.width = window.innerWidth;
@@ -56,14 +56,21 @@ export function Loading() {
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // Recalculate columns if needed
+      const newColumns = Math.floor(canvas.width / fontSize);
+      if (newColumns !== columns) {
+        drops.length = newColumns;
+        drops.fill(1);
+      }
     };
     window.addEventListener('resize', handleResize);
 
+    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrame);
     };
-  }, []);
+  }, []); // Empty dependency array is fine since this runs once on mount
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#0d0208] z-50">
@@ -77,12 +84,12 @@ export function Loading() {
         <motion.div
           animate={{ 
             scale: [1, 1.2, 1],
-            opacity: [1, 0.8, 1]
+            opacity: [1, 0.8, 1],
           }}
           transition={{
             duration: 2,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
           className="text-[#00ff41] text-2xl font-bold mb-4"
         >
@@ -99,7 +106,7 @@ export function Loading() {
                 duration: 0.5,
                 delay: i * 0.2,
                 repeat: Infinity,
-                repeatType: "reverse"
+                repeatType: "reverse" as const, // Type assertion for TypeScript
               }}
               className="w-3 h-3 rounded-full bg-[#00ff41]"
             />
