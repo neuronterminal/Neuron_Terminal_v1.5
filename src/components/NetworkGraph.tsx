@@ -1,80 +1,89 @@
-"use client"
+import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 
-import type React from "react"
-import { useEffect, useRef } from "react"
-import * as d3 from "d3"
-
-interface Node extends d3.SimulationNodeDatum {
-  id: string
-  group: number
+interface Node {
+  id: string;
+  group: number;
+  x?: number;
+  y?: number;
 }
 
 interface Link {
-  source: string
-  target: string
-  value: number
+  source: Node;
+  target: Node;
+  value: number;
 }
 
-interface NetworkGraphProps {
-  nodes: Node[]
-  links: Link[]
-  width: number
-  height: number
-}
-
-const NetworkGraph: React.FC<NetworkGraphProps> = ({ nodes, links, width, height }) => {
-  const svgRef = useRef<SVGSVGElement>(null)
+const NetworkGraph: React.FC = () => {
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    if (!svgRef.current) return
+    if (!svgRef.current) return;
 
-    const simulation = d3
-      .forceSimulation<Node>(nodes)
-      .force(
-        "link",
-        d3.forceLink<Node, Link>(links).id((d) => d.id),
-      )
-      .force("charge", d3.forceManyBody())
-      .force("center", d3.forceCenter(width / 2, height / 2))
-
-    const svg = d3.select(svgRef.current)
+    const width = 800;
+    const height = 600;
 
     // Clear previous content
-    svg.selectAll("*").remove()
+    d3.select(svgRef.current).selectAll("*").remove();
 
-    const link = svg
-      .append("g")
+    const svg = d3.select(svgRef.current)
+      .attr("width", width)
+      .attr("height", height);
+
+    // Sample data
+    const nodes: Node[] = [
+      { id: "Node 1", group: 1 },
+      { id: "Node 2", group: 1 },
+      { id: "Node 3", group: 2 },
+      { id: "Node 4", group: 2 }
+    ];
+
+    const links: Link[] = [
+      { source: nodes[0], target: nodes[1], value: 1 },
+      { source: nodes[1], target: nodes[2], value: 1 },
+      { source: nodes[2], target: nodes[3], value: 1 }
+    ];
+
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links))
+      .force("charge", d3.forceManyBody().strength(-400))
+      .force("center", d3.forceCenter(width / 2, height / 2));
+
+    const link = svg.append("g")
       .selectAll("line")
       .data(links)
-      .join("line")
+      .enter().append("line")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.6)
+      .attr("stroke-width", d => Math.sqrt(d.value));
 
-    const node = svg.append("g").selectAll("circle").data(nodes).join("circle").attr("r", 5).attr("fill", "#69b3a2")
+    const node = svg.append("g")
+      .selectAll("circle")
+      .data(nodes)
+      .enter().append("circle")
+      .attr("r", 5)
+      .attr("fill", "#69b3a2");
 
     simulation.on("tick", () => {
       link
-        .attr("x1", (d) => (d.source as Node).x ?? 0)
-        .attr("y1", (d) => (d.source as Node).y ?? 0)
-        .attr("x2", (d) => (d.target as Node).x ?? 0)
-        .attr("y2", (d) => (d.target as Node).y ?? 0)
+        .attr("x1", d => d.source.x || 0)
+        .attr("y1", d => d.source.y || 0)
+        .attr("x2", d => d.target.x || 0)
+        .attr("y2", d => d.target.y || 0);
 
-      node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0)
-    })
+      node
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
+    });
 
-    return () => simulation.stop()
-  }, [nodes, links, width, height])
+    return () => {
+      simulation.stop();
+    };
+  }, []);
 
   return (
-    <svg ref={svgRef} width={width} height={height}>
-      <defs>
-        <marker id="arrow" viewBox="0 -5 10 10" refX="8" refY="0" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,-5L10,0L0,5" fill="#999" />
-        </marker>
-      </defs>
-    </svg>
-  )
-}
+    <svg ref={svgRef} className="network-graph"></svg>
+  );
+};
 
-export default NetworkGraph
-
+export default NetworkGraph;
