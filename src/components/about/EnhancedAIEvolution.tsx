@@ -19,15 +19,15 @@ export function EnhancedAIEvolution() {
     { label: 'Neural Connections', value: 0, maxValue: 1000 },
     { label: 'Learning Rate', value: 0, maxValue: 100 },
     { label: 'Pattern Recognition', value: 0, maxValue: 100 },
-    { label: 'Response Accuracy', value: 0, maxValue: 100 }
+    { label: 'Response Accuracy', value: 0, maxValue: 100 },
   ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return; // Early exit if canvas is null
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return; // Early exit if context is null
 
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
@@ -46,42 +46,45 @@ export function EnhancedAIEvolution() {
         radius: type === 'hidden' ? 3 : 4,
         synapses: 0,
         type,
-        activity: 0
+        activity: 0,
       });
     }
 
     let frame = 0;
     let evolutionProgress = 0;
+    let animationFrameId: number;
 
     function updateMetrics() {
       evolutionProgress += 0.1;
       const progress = Math.min(evolutionProgress, 100);
-      
+
       setMetrics([
-        { 
-          label: 'Neural Connections', 
-          value: Math.min(100 + progress * 9, 1000), 
-          maxValue: 1000 
+        {
+          label: 'Neural Connections',
+          value: Math.min(100 + progress * 9, 1000),
+          maxValue: 1000,
         },
-        { 
-          label: 'Learning Rate', 
+        {
+          label: 'Learning Rate',
           value: 50 + Math.sin(evolutionProgress / 10) * 20 + progress / 2,
-          maxValue: 100 
+          maxValue: 100,
         },
-        { 
-          label: 'Pattern Recognition', 
+        {
+          label: 'Pattern Recognition',
           value: Math.min(40 + progress * 0.6, 100),
-          maxValue: 100 
+          maxValue: 100,
         },
-        { 
-          label: 'Response Accuracy', 
+        {
+          label: 'Response Accuracy',
           value: Math.min(30 + progress * 0.7, 100),
-          maxValue: 100 
-        }
+          maxValue: 100,
+        },
       ]);
     }
 
     function animate() {
+      if (!ctx || !canvas) return; // Additional safety check
+
       ctx.fillStyle = 'rgba(13, 2, 8, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -118,10 +121,11 @@ export function EnhancedAIEvolution() {
 
         // Draw node
         ctx.beginPath();
-        ctx.fillStyle = node.type === 'input' 
-          ? '#41ffca' 
-          : node.type === 'output' 
-            ? '#41ff41' 
+        ctx.fillStyle =
+          node.type === 'input'
+            ? '#41ffca'
+            : node.type === 'output'
+            ? '#41ff41'
             : '#41ff8c';
         ctx.arc(node.x, node.y, node.radius + node.activity * 2, 0, Math.PI * 2);
         ctx.fill();
@@ -129,17 +133,24 @@ export function EnhancedAIEvolution() {
 
       frame++;
       if (frame % 60 === 0) updateMetrics();
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }
 
     animate();
+
+    // Cleanup
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, []);
 
   return (
     <div>
       <AIEvolutionMetrics metrics={metrics} />
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         className="w-full h-[400px] rounded-lg border border-[#00ff41]"
       />
       <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
