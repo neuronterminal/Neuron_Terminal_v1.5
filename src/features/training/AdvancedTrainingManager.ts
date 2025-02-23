@@ -1,23 +1,18 @@
 import * as tf from '@tensorflow/tfjs';
-import { ModelArchitecture } from '../ai/models/types';
 
 export interface TrainingData {
-  inputs: number[][] | tf.Tensor;
-  outputs: number[][] | tf.Tensor;
+  inputs: number[][] | tf.Tensor2D; // Use tf.Tensor2D instead of tf.Tensor
+  outputs: number[][] | tf.Tensor2D;
 }
 
 export class AdvancedTrainingManager {
-  private model: tf.Sequential | null = null; // Use Sequential instead of LayersModel
+  private model: tf.Sequential | null = null;
   private conceptModel: tf.Sequential | null = null;
-  private isTraining: boolean = false;
 
-  constructor() {
-    // Initialize models in constructor or leave to initializeModels
-  }
+  constructor() {}
 
   async initializeModels() {
-    // Main language model architecture
-    const mainArchitecture: ModelArchitecture = {
+    const mainArchitecture = {
       inputShape: [128],
       outputShape: [64],
       layers: [
@@ -27,8 +22,7 @@ export class AdvancedTrainingManager {
       ],
     };
 
-    // Concept understanding model architecture
-    const conceptArchitecture: ModelArchitecture = {
+    const conceptArchitecture = {
       inputShape: [256],
       outputShape: [128],
       layers: [
@@ -38,19 +32,17 @@ export class AdvancedTrainingManager {
       ],
     };
 
-    // Assuming createModel returns a tf.Sequential model
     this.model = await this.createModel(mainArchitecture);
     this.conceptModel = await this.createModel(conceptArchitecture);
   }
 
-  // Helper method to create models (temporary, replace with actual createModel import if needed)
-  private async createModel(architecture: ModelArchitecture): Promise<tf.Sequential> {
+  private async createModel(architecture: any): Promise<tf.Sequential> {
     const model = tf.sequential();
-    architecture.layers.forEach((layer, index) => {
-      const layerConfig: tf.layers.LayerConfig = {
+    architecture.layers.forEach((layer: any, index: number) => {
+      const layerConfig: tf.layers.DenseLayerArgs = {
         units: layer.units,
         activation: layer.activation,
-        ...(index === 0 && { inputShape: architecture.inputShape }), // Add inputShape to first layer
+        ...(index === 0 && { inputShape: architecture.inputShape }),
       };
       model.add(tf.layers.dense(layerConfig));
     });
@@ -62,55 +54,32 @@ export class AdvancedTrainingManager {
     return model;
   }
 
-  // Implement missing methods referenced in errors
   async trainOnDialogue(data: TrainingData) {
-    if (!this.model || this.isTraining) return;
-    this.isTraining = true;
-
+    if (!this.model) return;
     const xs = tf.tensor2d(data.inputs as number[][]);
     const ys = tf.tensor2d(data.outputs as number[][]);
-
-    await this.model.fit(xs, ys, {
-      epochs: 10,
-      batchSize: 32,
-      callbacks: {
-        onEpochEnd: (epoch, logs) => {
-          console.log(`Epoch ${epoch}: loss = ${logs?.loss}`);
-        },
-      },
-    });
-
+    await this.model.fit(xs, ys, { epochs: 10, batchSize: 32 });
     xs.dispose();
     ys.dispose();
-    this.isTraining = false;
   }
 
   async trainOnConcepts(data: TrainingData) {
-    if (!this.conceptModel || this.isTraining) return;
-    this.isTraining = true;
-
+    if (!this.conceptModel) return;
     const xs = tf.tensor2d(data.inputs as number[][]);
     const ys = tf.tensor2d(data.outputs as number[][]);
-
-    await this.conceptModel.fit(xs, ys, {
-      epochs: 10,
-      batchSize: 32,
-    });
-
+    await this.conceptModel.fit(xs, ys, { epochs: 10, batchSize: 32 });
     xs.dispose();
     ys.dispose();
-    this.isTraining = false;
   }
 
   async saveModels() {
-    if (!this.model || !this.conceptModel) return;
-    await this.model.save('localstorage://main-model');
-    await this.conceptModel.save('localstorage://concept-model');
+    if (this.model) await this.model.save('localstorage://main-model');
+    if (this.conceptModel) await this.conceptModel.save('localstorage://concept-model');
   }
 
   async loadModels() {
-    this.model = (await tf.loadLayersModel('localstorage://main-model')) as tf.Sequential;
-    this.conceptModel = (await tf.loadLayersModel('localstorage://concept-model')) as tf.Sequential;
+    this.model = await tf.loadLayersModel('localstorage://main-model') as tf.Sequential;
+    this.conceptModel = await tf.loadLayersModel('localstorage://concept-model') as tf.Sequential;
   }
 
   getModelWeights(): tf.Tensor[] | null {
@@ -118,12 +87,6 @@ export class AdvancedTrainingManager {
   }
 
   setModelWeights(weights: tf.Tensor[]) {
-    if (this.model) {
-      this.model.setWeights(weights);
-    }
+    if (this.model) this.model.setWeights(weights);
   }
 }
-
-// Example usage outside class (remove if not needed)
-const exampleModel = tf.sequential();
-exampleModel.add(tf.layers.dense({ units: 10, inputShape: [10] }));
