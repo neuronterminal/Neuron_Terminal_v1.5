@@ -1,14 +1,12 @@
-import { ParsedInput } from '../types/parser';
-import { EmotionalContext } from '../types/emotions';
-import { Script, ReassemblyRule } from './types';
+import { generateElizaResponse } from '../eliza/elizaCore'; // Fixed import name, no alias needed
+import { generateAnthropicResponse } from '../anthropic/client';
 
-export class ResponseGenerator {
-  private script: Script;
-  private emotionalContext: EmotionalContext | null = null;
+export type ResponseMode = 'eliza' | 'claude';
 
-  constructor(script: Script) {
-    this.script = script;
+export async function generateResponse(input: string, mode: ResponseMode = 'claude'): Promise<string> {
+  if (mode === 'eliza') {
+    return generateElizaResponse(input);
   }
 
-  // ... rest of the file remains the same
+  return generateAnthropicResponse(input);
 }
