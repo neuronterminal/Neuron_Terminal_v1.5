@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3';
 import * as d3 from 'd3';
+import type { SimulationNodeDatum, SimulationLinkDatum } from 'd3';
 
 interface Node extends SimulationNodeDatum {
   id: string;
@@ -8,8 +8,8 @@ interface Node extends SimulationNodeDatum {
 }
 
 interface Link extends SimulationLinkDatum<Node> {
-  source: string;
-  target: string;
+  source: string | Node; // Allow string or Node to match D3's behavior
+  target: string | Node; // Same here
   value: number;
 }
 
@@ -27,22 +27,26 @@ export function NetworkGraph({ nodes, links }: NetworkGraphProps) {
     const width = 600;
     const height = 400;
 
-    const svg = d3.select(svgRef.current)
-      .attr('viewBox', [0, 0, width, height].join(' '));
+    const svg = d3
+      .select(svgRef.current)
+      .attr('viewBox', `0 0 ${width} ${height}`);
 
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink<Node, Link>(links).id(d => d.id))
+    const simulation = d3
+      .forceSimulation<Node>(nodes)
+      .force('link', d3.forceLink<Node, Link>(links).id((d) => d.id))
       .force('charge', d3.forceManyBody())
       .force('center', d3.forceCenter(width / 2, height / 2));
 
-    const link = svg.append('g')
+    const link = svg
+      .append('g')
       .selectAll('line')
       .data(links)
       .join('line')
       .attr('stroke', '#00ff41')
       .attr('stroke-opacity', 0.6);
 
-    const node = svg.append('g')
+    const node = svg
+      .append('g')
       .selectAll('circle')
       .data(nodes)
       .join('circle')
@@ -51,20 +55,21 @@ export function NetworkGraph({ nodes, links }: NetworkGraphProps) {
 
     simulation.on('tick', () => {
       link
-        .attr('x1', d => (d.source as Node).x || 0)
-        .attr('y1', d => (d.source as Node).y || 0)
-        .attr('x2', d => (d.target as Node).x || 0)
-        .attr('y2', d => (d.target as Node).y || 0);
+        .attr('x1', (d) => (d.source as Node).x ?? 0) // Use ?? for nullish coalescing
+        .attr('y1', (d) => (d.source as Node).y ?? 0)
+        .attr('x2', (d) => (d.target as Node).x ?? 0)
+        .attr('y2', (d) => (d.target as Node).y ?? 0);
 
       node
-        .attr('cx', d => d.x || 0)
-        .attr('cy', d => d.y || 0);
+        .attr('cx', (d) => d.x ?? 0)
+        .attr('cy', (d) => d.y ?? 0);
     });
 
-    return () => simulation.stop();
+    // Cleanup function
+    return () => {
+      simulation.stop();
+    };
   }, [nodes, links]);
 
-  return (
-    <svg ref={svgRef} className="w-full h-full" />
-  );
+  return <svg ref={svgRef} className="w-full h-full" />;
 }
