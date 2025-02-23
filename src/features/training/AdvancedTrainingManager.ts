@@ -2,6 +2,9 @@ import * as tf from '@tensorflow/tfjs';
 import { ModelArchitecture } from '../ai/models/types';
 import { createModel } from '../ai/models/modelFactory';
 
+const model = tf.sequential(); // Instead of assuming LayersModel or direct tf properties
+model.add(tf.layers.dense({ units: 10, inputShape: [10] }));
+
 export class AdvancedTrainingManager {
   private model: tf.LayersModel | null = null;
   private conceptModel: tf.LayersModel | null = null;
