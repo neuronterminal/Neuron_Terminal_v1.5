@@ -1,57 +1,124 @@
-import { KnowledgeGraph } from './knowledgeGraph';
-import { SemanticAnalysis } from './types';
+import { generateCompletionFromOpenAI } from '../../services/aiService';
+import { extractEntities } from './entityExtractor';
+import { analyzeIntent } from './intentAnalyzer';
+import { extractKeywords } from './keywordExtractor';
+import { extractRelationships } from './relationshipExtractor';
 
-export class SemanticAnalyzer {
-  private knowledgeGraph: any = {};
-  private readonly MAX_CONTEXT_LENGTH: number = 1000;
+interface SemanticAnalysisResult {
+  entities: string[];
+  intent: string;
+  keywords: string[];
+  relationships: any[];
+  confidence: number;
+}
 
-  updateContext(text: string): void {
-    console.log(`Updating context with ${text.slice(0, this.MAX_CONTEXT_LENGTH)}`);
-  }
+/**
+ * Performs comprehensive semantic analysis on input text
+ * @param text The input text to analyze
+ * @returns A promise containing the semantic analysis results
+ */
+export async function performSemanticAnalysis(text: string): Promise<SemanticAnalysisResult> {
+  try {
+    // Perform various NLP analyses in parallel
+    const [entities, intent, keywords, relationships] = await Promise.all([
+      extractEntities(text),
+      analyzeIntent(text),
+      extractKeywords(text),
+      extractRelationships(text)
+    ]);
 
-  extractEntities(text: string): string[] {
-    return text.split(/\s+/).filter((w) => w.length > 2); // Placeholder
-  }
+    // Calculate confidence score based on the consistency and completeness of results
+    const confidence = calculateConfidenceScore(entities, intent, keywords, relationships);
 
-  extractRelations(text: string): string[] {
-    return []; // Placeholder
-  }
-
-  calculateComplexity(text: string): number {
-    return text.length; // Placeholder
-  }
-
-  analyze(text: string): void {
-    console.log(this.knowledgeGraph); // Use property
-    this.updateContext(text);
+    // Return combined analysis result
+    return {
+      entities,
+      intent,
+      keywords,
+      relationships,
+      confidence
+    };
+  } catch (error) {
+    console.error('Error in semantic analysis:', error);
+    throw new Error(`Semantic analysis failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-  constructor() {
-    this.knowledgeGraph = new KnowledgeGraph();
-  }
+/**
+ * Calculate a confidence score for the semantic analysis
+ * @param entities Extracted entities
+ * @param intent Analyzed intent
+ * @param keywords Extracted keywords
+ * @param relationships Extracted relationships
+ * @returns A confidence score between 0 and 1
+ */
+function calculateConfidenceScore(
+  entities: string[],
+  intent: string,
+  keywords: string[],
+  relationships: any[]
+): number {
+  // Basic confidence calculation
+  let score = 0;
 
-  async analyzeSemantics(input: string): Promise<SemanticAnalysis> {
-    this.updateContext(input);
+  // Add points for each successful extraction
+  if (entities.length > 0) score += 0.25;
+  if (intent && intent.length > 0) score += 0.25;
+  if (keywords.length > 0) score += 0.25;
+  if (relationships.length > 0) score += 0.25;
+
+  return score;
+}
+
+/**
+ * Enhances semantic analysis with AI-based contextual understanding
+ * @param text The input text to analyze
+ * @param initialAnalysis Initial semantic analysis results
+ * @returns Enhanced semantic analysis
+ */
+export async function enhanceWithAI(
+  text: string,
+  initialAnalysis: SemanticAnalysisResult
+): Promise<SemanticAnalysisResult> {
+  try {
+    // Construct a prompt for the AI model
+    const prompt = `
+      Enhance this semantic analysis:
+      
+      Text: "${text}"
+      
+      Initial Analysis:
+      - Entities: ${initialAnalysis.entities.join(', ')}
+      - Intent: ${initialAnalysis.intent}
+      - Keywords: ${initialAnalysis.keywords.join(', ')}
+      - Relationships: ${JSON.stringify(initialAnalysis.relationships)}
+      
+      Provide improved entities, intent, keywords, and relationships in JSON format.
+    `;
+
+    // Get enhanced analysis from AI
+    const aiResponse = await generateCompletionFromOpenAI(prompt);
     
-    const entities = this.extractEntities(input);
-    const relations = this.extractRelations(input);
-    const complexity = this.calculateComplexity(input);
-    const coherence = this.calculateCoherence(input);
-
+    // Parse the AI response
+    let enhancedAnalysis;
+    try {
+      enhancedAnalysis = JSON.parse(aiResponse);
+    } catch (e) {
+      console.warn('Failed to parse AI response as JSON, using initial analysis');
+      return initialAnalysis;
+    }
+    
+    // Merge the initial and enhanced analyses, preferring the enhanced one
     return {
-      entities,
-      relations,
-      context: [...this.contextWindow],
-      complexity,
-      coherence
+      entities: enhancedAnalysis.entities || initialAnalysis.entities,
+      intent: enhancedAnalysis.intent || initialAnalysis.intent,
+      keywords: enhancedAnalysis.keywords || initialAnalysis.keywords,
+      relationships: enhancedAnalysis.relationships || initialAnalysis.relationships,
+      confidence: Math.min(1, initialAnalysis.confidence + 0.2) // Slightly boost confidence, capped at 1
     };
-  }
-
-  // ... rest of the methods remain the same, but remove calculateCoherence's TensorFlow usage
-  private calculateCoherence(input: string): number {
-    if (this.contextWindow.length < 2) return 1;
-    // Simple coherence calculation without TensorFlow
-    return Math.random();
+  } catch (error) {
+    console.error('Error enhancing analysis with AI:', error);
+    // Return the initial analysis if enhancement fails
+    return initialAnalysis;
   }
 }
